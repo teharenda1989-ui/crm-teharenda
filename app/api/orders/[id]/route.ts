@@ -74,13 +74,11 @@ export async function PATCH(
     data.commissionAmount = n;
   }
 
-  // Исполнитель
   if (body.assigneeName !== undefined)
     data.assigneeName = body.assigneeName || null;
   if (body.assigneePhone !== undefined)
     data.assigneePhone = body.assigneePhone || null;
 
-  // Дата/время
   if (body.startAt !== undefined) {
     const d = new Date(body.startAt);
     if (isNaN(d.getTime())) {
@@ -123,6 +121,12 @@ export async function DELETE(
     return NextResponse.json({ error: 'Заявка не найдена' }, { status: 404 });
   }
 
+  // Сначала удаляем связанные записи
+  await prisma.messageLog.deleteMany({ where: { orderId: params.id } });
+  await prisma.orderGroup.deleteMany({ where: { orderId: params.id } });
+
+  // Потом саму заявку
   await prisma.order.delete({ where: { id: params.id } });
+
   return NextResponse.json({ ok: true });
 }
