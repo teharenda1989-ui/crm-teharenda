@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -122,30 +122,26 @@ model Order {
   category         String
   city             String?
 
-  // Время
-  startAt          DateTime?  // новое поле — дата и время начала
-  when             String?    // legacy — для старых заявок
+  startAt          DateTime?
+  when             String?
 
   description      String?
   dispatcher       String
   dispatcherPhone  String
 
-  // Статусы
-  status              String    @default("ACTIVE")  // ACTIVE | CLOSED
-  result              String?                        // SUCCESS | FAIL
-  closedInTelegram    Boolean   @default(false)      // закрыт поиск в ТГ?
+  status              String    @default("ACTIVE")
+  result              String?
+  closedInTelegram    Boolean   @default(false)
   closedInTelegramAt  DateTime?
 
-  // Исполнитель
   assigneeName     String?
   assigneePhone    String?
 
-  // Финансы
   orderAmount      Int?
   commissionAmount Int?
 
   createdAt        DateTime  @default(now())
-  closedAt         DateTime?  // когда окончательно завершена
+  closedAt         DateTime?
 
   partnerId String?
   partner   Partner? @relation(fields: [partnerId], references: [id])
