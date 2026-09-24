@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("PARTNER")
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+}
+
+model Partner {
+  id             String   @id @default(cuid())
+  name           String
+  email          String?  @unique
+  phone          String?
+  city           String?
+  royaltyPercent Float    @default(3)
+  isActive       Boolean  @default(true)
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users   User[]
+  reports RoyaltyReport[]
+  owners  Owner[]
+  clients Client[]
+  groups  TelegramGroup[]
+  orders  Order[]
+}
+
+model Owner {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  company   String?
+  city      String?
+  address   String?
+  lat       Float?
+  lng       Float?
+  comment   String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+
+  vehicles Vehicle[]
+  logs     MessageLog[]
+
+  @@unique([partnerId, phone])
+}
+
+model Vehicle {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  category  String
+  brand     String?
+  model     String?
+  year      Int?
+  comment   String?
+
+  createdAt DateTime @default(now())
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  inn       String?
+  kpp       String?
+  ogrn      String?
+  address   String?
+  comment   String?
+
+  bankName        String?
+  bankAccount     String?
+  bankBik         String?
+  bankCorrAccount String?
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model TelegramGroup {
+  id        String   @id @default(cuid())
+  title     String
+  chatId    String   @unique
+  category  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+
+  orderGroups OrderGroup[]
+}
+
+model Order {
+  id               String    @id @default(cuid())
+  category         String
+  city             String?
+
+  // Время
+  startAt          DateTime?  // новое поле — дата и время начала
+  when             String?    // legacy — для старых заявок
+
+  description      String?
+  dispatcher       String
+  dispatcherPhone  String
+
+  // Статусы
+  status              String    @default("ACTIVE")  // ACTIVE | CLOSED
+  result              String?                        // SUCCESS | FAIL
+  closedInTelegram    Boolean   @default(false)      // закрыт поиск в ТГ?
+  closedInTelegramAt  DateTime?
+
+  // Исполнитель
+  assigneeName     String?
+  assigneePhone    String?
+
+  // Финансы
+  orderAmount      Int?
+  commissionAmount Int?
+
+  createdAt        DateTime  @default(now())
+  closedAt         DateTime?  // когда окончательно завершена
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+
+  groups OrderGroup[]
+  logs   MessageLog[]
+}
+
+model OrderGroup {
+  id      String        @id @default(cuid())
+  orderId String
+  order   Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  groupId String
+  group   TelegramGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model MessageLog {
+  id        String   @id @default(cuid())
+  channel   String
+  target    String
+  chatId    String?
+  messageId String?
+  text      String
+  status    String
+  error     String?
+  createdAt DateTime @default(now())
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+  ownerId String?
+  owner   Owner?  @relation(fields: [ownerId], references: [id])
+}
+
+model RoyaltyReport {
+  id          String   @id @default(cuid())
+  periodStart DateTime
+  periodEnd   DateTime
+
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+
+  revenue Int @default(0)
+
+  taxRate   Float @default(0)
+  taxAmount Int   @default(0)
+
+  salaries       Int     @default(0)
+  officeRent     Int     @default(0)
+  communications Int     @default(0)
+  otherExpenses  Int     @default(0)
+  otherNote      String?
+
+  totalExpenses Int @default(0)
+  netProfit     Int @default(0)
+
+  royaltyPercent Float @default(0)
+  royaltyAmount  Int   @default(0)
+
+  createdAt DateTime @default(now())
+}

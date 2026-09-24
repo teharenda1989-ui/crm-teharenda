@@ -1,0 +1,33 @@
+apps/api/
+├── package.json          
+├── tsconfig.json         
+├── nest-cli.json         
+├── prisma/
+│   ├── schema.prisma     
+│   └── seed.ts           
+└── src/
+    ├── main.ts           
+    ├── app.module.ts     
+    ├── prisma/
+    │   ├── prisma.module.ts
+    │   └── prisma.service.ts
+    ├── auth/
+    │   ├── auth.module.ts
+    │   ├── auth.service.ts
+    │   └── auth.controller.ts
+    ├── vehicles/
+    │   ├── vehicles.module.ts
+    │   ├── vehicles.service.ts
+    │   └── vehicles.controller.ts
+    ├── orders/
+    │   ├── orders.module.ts
+    │   ├── orders.service.ts
+    │   └── orders.controller.ts
+    ├── dispatch/
+    │   ├── dispatch.module.ts
+    │   ├── dispatch.service.ts
+    │   └── dispatch.controller.ts
+    └── calls/
+        ├── calls.module.ts
+        ├── calls.service.ts
+        └── calls.controller.ts

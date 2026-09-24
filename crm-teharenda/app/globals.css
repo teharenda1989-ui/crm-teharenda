@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-slate-100 text-ink-900 font-sans text-[15px];
+  }
+
+  h1 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(203 213 225);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(148 163 184);
+    background-clip: content-box;
+    border: 2px solid transparent;
+  }
+
+  input,
+  select,
+  textarea {
+    transition: all 150ms ease;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: #f5b400;
+    box-shadow: 0 0 0 4px rgba(245, 180, 0, 0.15);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Жёлтая кнопка (основная, как на сайте) */
+  .btn-primary {
+    @apply btn bg-brand-400 text-ink-900 hover:bg-brand-300 active:scale-[0.98];
+  }
+
+  /* Чёрная кнопка */
+  .btn-dark {
+    @apply btn bg-ink-900 text-white hover:bg-ink-800 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply btn bg-white text-ink-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98];
+  }
+
+  .btn-success {
+    @apply btn bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply btn bg-red-50 text-red-700 hover:bg-red-100 active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-slate-100;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200/70;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  }
+
+  .input {
+    @apply w-full border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white text-ink-900 placeholder:text-slate-400;
+  }
+
+  .label {
+    @apply block text-[13px] font-semibold text-ink-700 mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-ink-900;
+  }
+}
