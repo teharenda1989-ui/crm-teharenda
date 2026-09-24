@@ -1,6 +1,8 @@
 import https from 'https';
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Прокси через Cloudflare Worker (Telegram заблокирован в РФ)
+const API_URL = 'https://teharenda-proxy.teharenda1989.workers.dev';
 
 export interface SendResult {
   ok: boolean;
@@ -24,7 +26,7 @@ function httpsPost(urlStr: string, bodyObj: any): Promise<any> {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
         },
-        family: 4, // принудительно IPv4
+        family: 4,
         timeout: 15000,
       },
       (res) => {
@@ -56,10 +58,10 @@ export async function sendToTelegram(
   text: string,
 ): Promise<SendResult> {
   if (!TOKEN) {
-    return { ok: false, error: 'TELEGRAM_BOT_TOKEN не задан в .env' };
+    return { ok: false, error: 'TELEGRAM_BOT_TOKEN не задан' };
   }
 
-  const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
+  const url = `${API_URL}/bot${TOKEN}/sendMessage`;
 
   try {
     const data = await httpsPost(url, {
@@ -85,10 +87,10 @@ export async function editTelegramMessage(
   text: string,
 ): Promise<SendResult> {
   if (!TOKEN) {
-    return { ok: false, error: 'TELEGRAM_BOT_TOKEN не задан в .env' };
+    return { ok: false, error: 'TELEGRAM_BOT_TOKEN не задан' };
   }
 
-  const url = `https://api.telegram.org/bot${TOKEN}/editMessageText`;
+  const url = `${API_URL}/bot${TOKEN}/editMessageText`;
 
   try {
     const data = await httpsPost(url, {
