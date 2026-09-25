@@ -228,6 +228,10 @@ export default function OrderPage() {
   if (!order) return <div className="text-slate-500">Заявка не найдена</div>;
 
   const isFullyClosed = order.status === 'CLOSED';
+  const hasGroups = order.groups.length > 0;
+  // Кнопка "Закрыть поиск" — только если были группы и поиск ещё открыт
+  const canCloseSearch =
+    order.status === 'ACTIVE' && hasGroups && !order.closedInTelegram;
 
   return (
     <div className="max-w-4xl">
@@ -250,8 +254,14 @@ export default function OrderPage() {
             <h1 className="text-2xl font-bold mb-2">{order.category}</h1>
             <div className="flex gap-2 flex-wrap">
               {order.status === 'ACTIVE' && !order.closedInTelegram && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-medium">
-                  🆕 Новая — поиск открыт
+                <span
+                  className={`text-xs px-3 py-1 rounded font-medium ${
+                    hasGroups
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {hasGroups ? '🆕 Новая заявка с отправкой' : '🆕 Новая заявка'}
                 </span>
               )}
               {order.status === 'ACTIVE' &&
@@ -285,10 +295,15 @@ export default function OrderPage() {
             <div>
               Создана: {new Date(order.createdAt).toLocaleString('ru-RU')}
             </div>
-            {order.groups.length > 0 && (
+            {hasGroups && (
               <div className="mt-1">
                 Отправлено в:{' '}
                 {order.groups.map((g) => g.group.title).join(', ')}
+              </div>
+            )}
+            {!hasGroups && (
+              <div className="mt-1 text-slate-400">
+                Без рассылки в Telegram
               </div>
             )}
           </div>
@@ -519,7 +534,7 @@ export default function OrderPage() {
             {saving ? 'Сохраняем...' : saved ? '✅ Сохранено' : '💾 Сохранить'}
           </button>
 
-          {order.status === 'ACTIVE' && !order.closedInTelegram && (
+          {canCloseSearch && (
             <button
               type="button"
               onClick={handleCloseSearch}
@@ -530,7 +545,7 @@ export default function OrderPage() {
             </button>
           )}
 
-          {order.status === 'ACTIVE' && order.closedInTelegram && (
+          {order.status === 'ACTIVE' && order.closedInTelegram && hasGroups && (
             <>
               <button
                 type="button"
@@ -555,6 +570,27 @@ export default function OrderPage() {
                 className="bg-white border border-slate-300 px-6 py-3 rounded hover:bg-slate-100"
               >
                 🔓 Переоткрыть поиск
+              </button>
+            </>
+          )}
+
+          {order.status === 'ACTIVE' && !hasGroups && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleComplete('SUCCESS')}
+                disabled={saving}
+                className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 font-medium"
+              >
+                ✅ Завершить успешно
+              </button>
+              <button
+                type="button"
+                onClick={() => handleComplete('FAIL')}
+                disabled={saving}
+                className="bg-red-50 text-red-700 px-6 py-3 rounded hover:bg-red-100 font-medium"
+              >
+                ❌ Без сделки
               </button>
             </>
           )}
