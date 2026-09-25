@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { getScope, scopeWhere } from '@/lib/scope';
+import AutoRefresh from '@/components/AutoRefresh';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Props {
   searchParams: { filter?: string };
@@ -41,6 +43,8 @@ export default async function OrdersPage({ searchParams }: Props) {
 
   return (
     <div>
+      <AutoRefresh interval={4000} />
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Заявки</h1>
         <Link
