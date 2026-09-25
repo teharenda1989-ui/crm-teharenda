@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     minute: '2-digit',
   });
 
-  // Проверяем группы
+  // Проверяем, что группы принадлежат пользователю
   let validGroupIds: string[] = [];
   if (groupIds?.length) {
     const allowed = await prisma.telegramGroup.findMany({
@@ -112,19 +112,7 @@ export async function POST(req: NextRequest) {
     validGroupIds = allowed.map((g) => g.id);
   }
 
-  // Если групп нет — исполнитель обязателен, заявка сразу "в работе"
-  const noGroups = validGroupIds.length === 0;
-
-  if (noGroups && (!assigneeName || !assigneePhone)) {
-    return NextResponse.json(
-      {
-        error:
-          'Без отправки в Telegram нужно указать исполнителя (имя и телефон)',
-      },
-      { status: 400 },
-    );
-  }
-
+  // Создаём заявку. Если групп нет — не отправляем в Telegram, заявка в статусе Новая.
   const order = await prisma.order.create({
     data: {
       category,
@@ -139,9 +127,6 @@ export async function POST(req: NextRequest) {
       partnerId: scope.partnerId,
       assigneeName: assigneeName || null,
       assigneePhone: assigneePhone || null,
-      // Если групп нет — сразу закрываем "поиск в Telegram"
-      closedInTelegram: noGroups,
-      closedInTelegramAt: noGroups ? new Date() : null,
       groups: validGroupIds.length
         ? { create: validGroupIds.map((groupId) => ({ groupId })) }
         : undefined,
@@ -151,8 +136,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Если групп нет — не отправляем в Telegram
-  if (noGroups) {
+  // Если групп не выбрано — не рассылаем, выходим
+  if (validGroupIds.length === 0) {
     return NextResponse.json({ order, sendResults: [] });
   }
 
