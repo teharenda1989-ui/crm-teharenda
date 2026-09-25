@@ -16,6 +16,7 @@ export async function POST(
 
   const order = await prisma.order.findFirst({
     where: { id: params.id, ...scopeWhere(scope) },
+    include: { groups: true },
   });
 
   if (!order) {
@@ -26,8 +27,11 @@ export async function POST(
     return NextResponse.json({ error: 'Заявка уже закрыта' }, { status: 400 });
   }
 
-  // Если поиск в ТГ не закрыт — закрываем принудительно? Нет, требуем сначала закрыть поиск
-  if (!order.closedInTelegram) {
+  const hasGroups = order.groups.length > 0;
+
+  // Если у заявки были группы — сначала нужно закрыть поиск в Telegram.
+  // Если групп не было — можно завершать сразу.
+  if (hasGroups && !order.closedInTelegram) {
     return NextResponse.json(
       {
         error:
