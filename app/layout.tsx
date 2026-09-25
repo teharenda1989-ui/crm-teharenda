@@ -3,7 +3,13 @@ import type { Metadata } from 'next';
 import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Техаrenda — панель диспетчера',
+  title: 'ТЕХаренда — панель диспетчера',
+  description: 'CRM для аренды спецтехники',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
