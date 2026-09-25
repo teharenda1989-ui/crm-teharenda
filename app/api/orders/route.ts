@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
   } else if (filter === 'closed') {
     where = { ...where, status: 'CLOSED' };
   }
-  // filter === 'all' — без доп. условий
 
   const orders = await prisma.order.findMany({
     where,
@@ -55,9 +54,10 @@ export async function POST(req: NextRequest) {
     groupIds,
     orderAmount,
     commissionAmount,
+    assigneeName,
+    assigneePhone,
   } = body;
 
-  // Валидация обязательных полей
   if (!category) {
     return NextResponse.json({ error: 'Укажите рубрику' }, { status: 400 });
   }
@@ -91,7 +91,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Неверная дата' }, { status: 400 });
   }
 
-  // Человекочитаемая строка времени для Telegram
   const whenText = startAtDate.toLocaleString('ru-RU', {
     day: '2-digit',
     month: '2-digit',
@@ -100,7 +99,7 @@ export async function POST(req: NextRequest) {
     minute: '2-digit',
   });
 
-  // Проверяем, что группы принадлежат пользователю
+  // Проверяем группы
   let validGroupIds: string[] = [];
   if (groupIds?.length) {
     const allowed = await prisma.telegramGroup.findMany({
@@ -111,6 +110,19 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     validGroupIds = allowed.map((g) => g.id);
+  }
+
+  // Если групп нет — исполнитель обязателен, заявка сразу "в работе"
+  const noGroups = validGroupIds.length === 0;
+
+  if (noGroups && (!assigneeName || !assigneePhone)) {
+    return NextResponse.json(
+      {
+        error:
+          'Без отправки в Telegram нужно указать исполнителя (имя и телефон)',
+      },
+      { status: 400 },
+    );
   }
 
   const order = await prisma.order.create({
@@ -125,6 +137,11 @@ export async function POST(req: NextRequest) {
       orderAmount: Number(orderAmount),
       commissionAmount: Number(commissionAmount),
       partnerId: scope.partnerId,
+      assigneeName: assigneeName || null,
+      assigneePhone: assigneePhone || null,
+      // Если групп нет — сразу закрываем "поиск в Telegram"
+      closedInTelegram: noGroups,
+      closedInTelegramAt: noGroups ? new Date() : null,
       groups: validGroupIds.length
         ? { create: validGroupIds.map((groupId) => ({ groupId })) }
         : undefined,
@@ -133,6 +150,11 @@ export async function POST(req: NextRequest) {
       groups: { include: { group: true } },
     },
   });
+
+  // Если групп нет — не отправляем в Telegram
+  if (noGroups) {
+    return NextResponse.json({ order, sendResults: [] });
+  }
 
   const messageText = buildOrderMessage({
     category,
