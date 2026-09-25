@@ -54,6 +54,15 @@ export default function OrderPage() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [ownerSuggest, setOwnerSuggest] = useState<Owner | null>(null);
 
+  // Загружаем заявку
+  const reloadOrder = async () => {
+    const r = await fetch(`/api/orders/${id}`);
+    if (r.ok) {
+      const data = await r.json();
+      setOrder(data);
+    }
+  };
+
   useEffect(() => {
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
@@ -80,6 +89,7 @@ export default function OrderPage() {
     setOwnerSuggest(found || null);
   }, [order?.assigneePhone, owners]);
 
+  // Сохранить заявку — после успеха перейти к списку
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
@@ -109,16 +119,18 @@ export default function OrderPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+
+      // Переходим ко всем заявкам
+      router.push('/orders');
       router.refresh();
     } catch (e: any) {
       setError(e.message);
-      throw e;
     } finally {
       setSaving(false);
     }
   };
 
+  // Закрыть поиск в Telegram — остаёмся на этой же странице
   const handleCloseSearch = async () => {
     if (!order) return;
 
@@ -137,6 +149,7 @@ export default function OrderPage() {
         return;
     }
 
+    // Сначала сохраняем текущие изменения
     try {
       await fetch(`/api/orders/${id}`, {
         method: 'PATCH',
@@ -161,10 +174,11 @@ export default function OrderPage() {
       const res = await fetch(`/api/orders/${id}/close`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
-      router.push('/orders');
-      router.refresh();
+      // Остаёмся на этой же странице — просто обновляем данные
+      await reloadOrder();
     } catch (e: any) {
       setError(e.message);
+    } finally {
       setSaving(false);
     }
   };
@@ -176,9 +190,7 @@ export default function OrderPage() {
       const res = await fetch(`/api/orders/${id}/reopen`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
-      const r = await fetch(`/api/orders/${id}`).then((r) => r.json());
-      setOrder(r);
-      router.refresh();
+      await reloadOrder();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -186,6 +198,7 @@ export default function OrderPage() {
     }
   };
 
+  // Завершить заявку (успех/без сделки) — перейти к списку
   const handleComplete = async (result: 'SUCCESS' | 'FAIL') => {
     const text =
       result === 'SUCCESS'
@@ -229,9 +242,11 @@ export default function OrderPage() {
 
   const isFullyClosed = order.status === 'CLOSED';
   const hasGroups = order.groups.length > 0;
-  // Кнопка "Закрыть поиск" — только если были группы и поиск ещё открыт
   const canCloseSearch =
     order.status === 'ACTIVE' && hasGroups && !order.closedInTelegram;
+  const canComplete =
+    order.status === 'ACTIVE' &&
+    (!hasGroups || order.closedInTelegram);
 
   return (
     <div className="max-w-4xl">
