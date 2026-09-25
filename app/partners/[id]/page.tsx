@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface PartnerUser {
+  id: string;
+  email: string;
+  name: string;
+  isActive: boolean;
+  lastLoginAt: string | null;
+}
+
 interface Partner {
   id: string;
   name: string;
@@ -13,13 +21,7 @@ interface Partner {
   royaltyPercent: number;
   isActive: boolean;
   comment: string | null;
-  users: {
-    id: string;
-    email: string;
-    name: string;
-    isActive: boolean;
-    lastLoginAt: string | null;
-  }[];
+  users: PartnerUser[];
 }
 
 export default function PartnerPage() {
@@ -37,11 +39,18 @@ export default function PartnerPage() {
   const [newPassword, setNewPassword] = useState('');
   const [resetMsg, setResetMsg] = useState('');
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     fetch(`/api/partners/${id}`)
       .then((r) => r.json())
       .then((data) => setPartner(data))
+      .catch(() => setError('Не удалось загрузить партнёра'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -56,16 +65,23 @@ export default function PartnerPage() {
       const res = await fetch(`/api/partners/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(partner),
+        body: JSON.stringify({
+          name: partner.name,
+          phone: partner.phone,
+          city: partner.city,
+          royaltyPercent: partner.royaltyPercent,
+          comment: partner.comment,
+          isActive: partner.isActive,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
 
-      setPartner(data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-      router.refresh();
+      // Перезагружаем данные партнёра — безопаснее, чем router.refresh()
+      load();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -75,14 +91,17 @@ export default function PartnerPage() {
 
   const handleDelete = async () => {
     if (
-      !confirm(
-        'Удалить партнёра и его учётную запись? Действие необратимо.',
-      )
+      !confirm('Удалить партнёра и его учётную запись? Действие необратимо.')
     )
       return;
 
-    await fetch(`/api/partners/${id}`, { method: 'DELETE' });
-    router.push('/partners');
+    try {
+      await fetch(`/api/partners/${id}`, { method: 'DELETE' });
+      router.push('/partners');
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleResetPassword = async () => {
@@ -91,28 +110,37 @@ export default function PartnerPage() {
       return;
     }
 
-    const res = await fetch(`/api/partners/${id}/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newPassword }),
-    });
+    try {
+      const res = await fetch(`/api/partners/${id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setResetMsg(data.error || 'Ошибка');
-      return;
+      const data = await res.json();
+      if (!res.ok) {
+        setResetMsg(data.error || 'Ошибка');
+        return;
+      }
+
+      setResetMsg('✅ Пароль изменён');
+      setNewPassword('');
+      setTimeout(() => {
+        setShowReset(false);
+        setResetMsg('');
+      }, 2000);
+    } catch (e: any) {
+      setResetMsg(e.message);
     }
-
-    setResetMsg('✅ Пароль изменён');
-    setNewPassword('');
-    setTimeout(() => {
-      setShowReset(false);
-      setResetMsg('');
-    }, 2000);
   };
 
-  if (loading) return <div className="text-slate-500">Загрузка...</div>;
-  if (!partner) return <div className="text-slate-500">Партнёр не найден</div>;
+  if (loading) {
+    return <div className="text-slate-500">Загрузка...</div>;
+  }
+
+  if (!partner) {
+    return <div className="text-slate-500">Партнёр не найден</div>;
+  }
 
   return (
     <div className="max-w-3xl">
@@ -124,22 +152,19 @@ export default function PartnerPage() {
 
       <form onSubmit={handleSave} className="flex flex-col gap-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
             <h1 className="text-2xl font-bold">{partner.name}</h1>
-            <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                id="isActive"
                 checked={partner.isActive}
                 onChange={(e) =>
                   setPartner({ ...partner, isActive: e.target.checked })
                 }
                 className="w-4 h-4"
               />
-              <label htmlFor="isActive" className="text-sm text-slate-600">
-                Активен
-              </label>
-            </div>
+              <span className="text-sm text-slate-600">Активен</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -227,10 +252,7 @@ export default function PartnerPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {partner.users.map((u) => (
-                <div
-                  key={u.id}
-                  className="border border-slate-200 rounded p-4"
-                >
+                <div key={u.id} className="border border-slate-200 rounded p-4">
                   <div className="flex justify-between items-center flex-wrap gap-2">
                     <div>
                       <div className="font-medium">{u.name}</div>
