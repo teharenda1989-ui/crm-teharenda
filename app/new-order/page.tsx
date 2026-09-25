@@ -35,11 +35,6 @@ export default function NewOrderPage() {
   const [commissionAmount, setCommissionAmount] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
-  // Опциональный исполнитель (если уже знаем, с кем работаем)
-  const [assigneeName, setAssigneeName] = useState('');
-  const [assigneePhone, setAssigneePhone] = useState('');
-  const [ownerSuggest, setOwnerSuggest] = useState<Owner | null>(null);
-
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -59,23 +54,6 @@ export default function NewOrderPage() {
       .then((data: Group[]) => setGroups(data))
       .catch(() => setGroups([]));
   }, []);
-
-  // Подтягиваем владельца по телефону исполнителя
-  useEffect(() => {
-    if (!assigneePhone) {
-      setOwnerSuggest(null);
-      return;
-    }
-    const digits = assigneePhone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setOwnerSuggest(null);
-      return;
-    }
-    const found = allOwners.find(
-      (o) => o.phone.replace(/\D/g, '') === digits,
-    );
-    setOwnerSuggest(found || null);
-  }, [assigneePhone, allOwners]);
 
   const matchingOwners = category
     ? allOwners.filter((o) =>
@@ -102,16 +80,6 @@ export default function NewOrderPage() {
       return;
     }
 
-    // Если группы не выбраны — исполнитель обязателен
-    if (selectedGroups.length === 0) {
-      if (!assigneeName || !assigneePhone) {
-        setError(
-          'Без отправки в Telegram нужно указать исполнителя (имя и телефон). Либо выберите группы для рассылки.',
-        );
-        return;
-      }
-    }
-
     setSending(true);
 
     try {
@@ -128,8 +96,6 @@ export default function NewOrderPage() {
           groupIds: selectedGroups,
           orderAmount: Number(orderAmount),
           commissionAmount: Number(commissionAmount),
-          assigneeName: assigneeName || null,
-          assigneePhone: assigneePhone || null,
         }),
       });
 
@@ -139,7 +105,10 @@ export default function NewOrderPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push('/orders'), 1500);
+      setTimeout(() => {
+        router.push('/orders');
+        router.refresh();
+      }, 800);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -227,7 +196,7 @@ export default function NewOrderPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-2">Финансы</h2>
           <p className="text-sm text-slate-500 mb-4">
-            Обязательные поля. В Telegram не отправляются.
+            Обязательные поля.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -296,75 +265,17 @@ export default function NewOrderPage() {
           </div>
         </div>
 
-        {/* Исполнитель — опционально */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-2">Исполнитель</h2>
-          <p className="text-sm text-slate-500 mb-4">
-            Заполняйте, если уже знаете, кто поедет. Если оставить пустым —
-            заявка уйдёт в Telegram, и вы выберете исполнителя позже.
-            <br />
-            <b>Если группы не выбраны — исполнитель обязателен.</b>
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Имя</label>
-              <input
-                type="text"
-                value={assigneeName}
-                onChange={(e) => setAssigneeName(e.target.value)}
-                placeholder="Иван Петров"
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">
-                Телефон
-              </label>
-              <input
-                type="text"
-                value={assigneePhone}
-                onChange={(e) => setAssigneePhone(e.target.value)}
-                placeholder="+7 999 123-45-67"
-                className="w-full border border-slate-300 rounded px-3 py-2"
-              />
-            </div>
-
-            {ownerSuggest && (
-              <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                <div className="text-blue-900 font-medium mb-1">
-                  🔍 Найден в базе владельцев:
-                </div>
-                <div className="text-slate-700">
-                  <b>{ownerSuggest.name}</b>
-                  {ownerSuggest.company && ` · ${ownerSuggest.company}`}
-                  <button
-                    type="button"
-                    onClick={() => setAssigneeName(ownerSuggest.name)}
-                    className="ml-3 text-blue-600 hover:underline text-xs"
-                  >
-                    Подставить имя
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">
             Куда отправить (Telegram-группы)
           </h2>
           <p className="text-sm text-slate-500 mb-4">
-            Если исполнитель уже известен — можно ничего не выбирать. Заявка
-            сразу перейдёт в статус «В работе».
+            Можно ничего не выбирать. Тогда заявка просто сохранится —
+            вы будете искать исполнителя вручную.
           </p>
 
           {groups.length === 0 ? (
-            <p className="text-slate-500 text-sm">
-              Нет добавленных групп.
-            </p>
+            <p className="text-slate-500 text-sm">Нет добавленных групп.</p>
           ) : (
             <div className="flex flex-col gap-2">
               {groups.map((g) => (
@@ -390,9 +301,7 @@ export default function NewOrderPage() {
             <h2 className="text-lg font-semibold mb-2">
               Подходящие владельцы ({matchingOwners.length})
             </h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Справочно.
-            </p>
+            <p className="text-sm text-slate-500 mb-4">Справочно.</p>
 
             {matchingOwners.length === 0 ? (
               <p className="text-slate-500">Нет владельцев с такой рубрикой.</p>
@@ -427,11 +336,7 @@ export default function NewOrderPage() {
             disabled={sending}
             className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 disabled:opacity-50 font-medium"
           >
-            {sending
-              ? 'Создаём...'
-              : selectedGroups.length > 0
-              ? '📨 Создать и отправить'
-              : '✅ Создать без рассылки'}
+            {sending ? 'Создаём...' : '📋 Создать заявку'}
           </button>
           <button
             type="button"
