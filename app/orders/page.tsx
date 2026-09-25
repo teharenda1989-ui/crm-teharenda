@@ -81,13 +81,24 @@ export default async function OrdersPage({ searchParams }: Props) {
             const isFullyClosed = order.status === 'CLOSED';
             const isInWork =
               order.status === 'ACTIVE' && order.closedInTelegram;
+            const hasGroups = order.groups.length > 0;
+            const isNewWithSend =
+              order.status === 'ACTIVE' && !order.closedInTelegram && hasGroups;
+            const isNewNoSend =
+              order.status === 'ACTIVE' && !order.closedInTelegram && !hasGroups;
 
             return (
               <Link
                 key={order.id}
                 href={`/orders/${order.id}`}
-                className={`rounded-lg shadow hover:shadow-md transition p-5 block ${
-                  isFullyClosed ? 'bg-slate-50' : 'bg-white'
+                className={`rounded-lg shadow hover:shadow-md transition p-5 block border-l-4 ${
+                  isFullyClosed
+                    ? 'bg-slate-50 border-l-slate-300'
+                    : isNewWithSend
+                    ? 'bg-blue-50 border-l-blue-500'
+                    : isNewNoSend
+                    ? 'bg-white border-l-slate-300'
+                    : 'bg-white border-l-yellow-400'
                 }`}
               >
                 <div className="flex justify-between items-start gap-4">
@@ -106,9 +117,14 @@ export default async function OrdersPage({ searchParams }: Props) {
                         </span>
                       )}
 
-                      {order.status === 'ACTIVE' && !order.closedInTelegram && (
+                      {isNewWithSend && (
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-                          🆕 Новая
+                          🆕 Новая заявка с отправкой
+                        </span>
+                      )}
+                      {isNewNoSend && (
+                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-medium">
+                          🆕 Новая заявка
                         </span>
                       )}
                       {isInWork && (
