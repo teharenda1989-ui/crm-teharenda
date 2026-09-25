@@ -66,7 +66,6 @@ export default function OrderPage() {
       .catch(() => {});
   }, [id]);
 
-  // Подтягиваем владельца по телефону исполнителя
   useEffect(() => {
     if (!order?.assigneePhone) {
       setOwnerSuggest(null);
@@ -123,7 +122,6 @@ export default function OrderPage() {
   const handleCloseSearch = async () => {
     if (!order) return;
 
-    // Мягкое предупреждение, если исполнителя нет
     if (!order.assigneeName || !order.assigneePhone) {
       const ok = confirm(
         'Исполнитель не указан. Всё равно закрыть поиск в группах?\n\n' +
@@ -139,7 +137,6 @@ export default function OrderPage() {
         return;
     }
 
-    // Сначала сохраняем текущие изменения
     try {
       await fetch(`/api/orders/${id}`, {
         method: 'PATCH',
@@ -157,21 +154,17 @@ export default function OrderPage() {
           startAt: order.startAt,
         }),
       });
-    } catch {
-      // Если не удалось сохранить — всё равно пробуем закрыть
-    }
+    } catch {}
 
     setSaving(true);
     try {
       const res = await fetch(`/api/orders/${id}/close`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
+      router.push('/orders');
       router.refresh();
-      const r = await fetch(`/api/orders/${id}`).then((r) => r.json());
-      setOrder(r);
     } catch (e: any) {
       setError(e.message);
-    } finally {
       setSaving(false);
     }
   };
@@ -209,12 +202,10 @@ export default function OrderPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
-      const r = await fetch(`/api/orders/${id}`).then((r) => r.json());
-      setOrder(r);
+      router.push('/orders');
       router.refresh();
     } catch (e: any) {
       setError(e.message);
-    } finally {
       setSaving(false);
     }
   };
@@ -253,7 +244,6 @@ export default function OrderPage() {
         </button>
       </div>
 
-      {/* Шапка со статусом */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex justify-between items-start gap-4 flex-wrap">
           <div>
@@ -305,7 +295,6 @@ export default function OrderPage() {
         </div>
       </div>
 
-      {/* Форма редактирования */}
       <form onSubmit={handleSave} className="flex flex-col gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Данные заявки</h2>
@@ -373,7 +362,6 @@ export default function OrderPage() {
           </div>
         </div>
 
-        {/* Исполнитель */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Исполнитель</h2>
 
@@ -437,7 +425,6 @@ export default function OrderPage() {
           </div>
         </div>
 
-        {/* Финансы */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Финансы</h2>
 
@@ -486,7 +473,6 @@ export default function OrderPage() {
           </div>
         </div>
 
-        {/* Диспетчер */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Диспетчер</h2>
 
@@ -524,7 +510,6 @@ export default function OrderPage() {
           </div>
         )}
 
-        {/* Кнопки действий */}
         <div className="bg-white rounded-lg shadow p-6 flex flex-wrap gap-3">
           <button
             type="submit"
