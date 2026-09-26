@@ -110,6 +110,7 @@ model TelegramGroup {
   chatId    String   @unique
   category  String?
   isActive  Boolean  @default(true)
+  messenger String   @default("telegram")
   createdAt DateTime @default(now())
 
   partnerId String?
