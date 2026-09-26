@@ -11,7 +11,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   }
 
-  // Проверяем, что группа принадлежит текущему пользователю
   const existing = await prisma.telegramGroup.findFirst({
     where: {
       id: params.id,
@@ -31,6 +30,9 @@ export async function PATCH(
       ...(body.title !== undefined && { title: body.title }),
       ...(body.category !== undefined && { category: body.category }),
       ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(body.messenger !== undefined && {
+        messenger: body.messenger === 'max' ? 'max' : 'telegram',
+      }),
     },
   });
 
