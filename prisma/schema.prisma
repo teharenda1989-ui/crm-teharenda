@@ -107,7 +107,7 @@ model Client {
 model TelegramGroup {
   id        String   @id @default(cuid())
   title     String
-  chatId    String   @unique
+  chatId    String
   category  String?
   isActive  Boolean  @default(true)
   messenger String   @default("telegram")
@@ -117,6 +117,8 @@ model TelegramGroup {
   partner   Partner? @relation(fields: [partnerId], references: [id])
 
   orderGroups OrderGroup[]
+
+  @@unique([messenger, chatId])
 }
 
 model Order {
