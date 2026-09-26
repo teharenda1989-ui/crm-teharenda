@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getScope, scopeWhere } from '@/lib/scope';
 import { sendToTelegram, buildOrderMessage } from '@/lib/telegram';
+import { sendToMax, buildOrderMessageMax } from '@/lib/max';
 
 export async function GET(req: NextRequest) {
   const scope = await getScope();
@@ -20,8 +21,6 @@ export async function GET(req: NextRequest) {
     where = { ...where, status: 'CLOSED', result: 'SUCCESS' };
   } else if (filter === 'fail') {
     where = { ...where, status: 'CLOSED', result: 'FAIL' };
-  } else if (filter === 'closed') {
-    where = { ...where, status: 'CLOSED' };
   }
 
   const orders = await prisma.order.findMany({
@@ -54,8 +53,6 @@ export async function POST(req: NextRequest) {
     groupIds,
     orderAmount,
     commissionAmount,
-    assigneeName,
-    assigneePhone,
   } = body;
 
   if (!category) {
@@ -112,7 +109,6 @@ export async function POST(req: NextRequest) {
     validGroupIds = allowed.map((g) => g.id);
   }
 
-  // Создаём заявку. Если групп нет — не отправляем в Telegram, заявка в статусе Новая.
   const order = await prisma.order.create({
     data: {
       category,
@@ -125,8 +121,6 @@ export async function POST(req: NextRequest) {
       orderAmount: Number(orderAmount),
       commissionAmount: Number(commissionAmount),
       partnerId: scope.partnerId,
-      assigneeName: assigneeName || null,
-      assigneePhone: assigneePhone || null,
       groups: validGroupIds.length
         ? { create: validGroupIds.map((groupId) => ({ groupId })) }
         : undefined,
@@ -136,19 +130,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Если групп не выбрано — не рассылаем, выходим
   if (validGroupIds.length === 0) {
     return NextResponse.json({ order, sendResults: [] });
   }
-
-  const messageText = buildOrderMessage({
-    category,
-    city,
-    when: whenText,
-    description,
-    dispatcher,
-    dispatcherPhone,
-  });
 
   const sendResults: { title: string; ok: boolean; error?: string }[] = [];
 
@@ -163,12 +147,35 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    const result = await sendToTelegram(group.chatId, messageText);
+    let result: { ok: boolean; error?: string; messageId?: string };
+    let messageText: string;
+
+    if (group.messenger === 'max') {
+      messageText = buildOrderMessageMax({
+        category,
+        city,
+        when: whenText,
+        description,
+        dispatcher,
+        dispatcherPhone,
+      });
+      result = await sendToMax(group.chatId, messageText);
+    } else {
+      messageText = buildOrderMessage({
+        category,
+        city,
+        when: whenText,
+        description,
+        dispatcher,
+        dispatcherPhone,
+      });
+      result = await sendToTelegram(group.chatId, messageText);
+    }
 
     await prisma.messageLog.create({
       data: {
         orderId: order.id,
-        channel: 'telegram',
+        channel: group.messenger,
         target: group.title,
         chatId: group.chatId,
         messageId: result.messageId || null,
