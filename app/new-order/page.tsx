@@ -16,6 +16,7 @@ interface Group {
   id: string;
   title: string;
   category: string | null;
+  messenger: string;
 }
 
 export default function NewOrderPage() {
@@ -61,10 +62,24 @@ export default function NewOrderPage() {
       )
     : [];
 
+  const tgGroups = groups.filter((g) => g.messenger === 'telegram');
+  const maxGroups = groups.filter((g) => g.messenger === 'max');
+
   const toggleGroup = (id: string) => {
     setSelectedGroups((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
     );
+  };
+
+  const toggleAll = (list: Group[]) => {
+    const ids = list.map((g) => g.id);
+    const allSelected = ids.every((id) => selectedGroups.includes(id));
+
+    if (allSelected) {
+      setSelectedGroups((prev) => prev.filter((id) => !ids.includes(id)));
+    } else {
+      setSelectedGroups((prev) => Array.from(new Set([...prev, ...ids])));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -266,32 +281,101 @@ export default function NewOrderPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Куда отправить (Telegram-группы)
+          <h2 className="text-lg font-semibold mb-2">
+            Куда отправить (группы)
           </h2>
           <p className="text-sm text-slate-500 mb-4">
-            Можно ничего не выбирать. Тогда заявка просто сохранится —
-            вы будете искать исполнителя вручную.
+            Можно ничего не выбирать. Тогда заявка просто сохранится — вы
+            будете искать исполнителя вручную.
           </p>
 
           {groups.length === 0 ? (
             <p className="text-slate-500 text-sm">Нет добавленных групп.</p>
           ) : (
-            <div className="flex flex-col gap-2">
-              {groups.map((g) => (
-                <label
-                  key={g.id}
-                  className="flex items-center gap-3 cursor-pointer p-3 rounded hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedGroups.includes(g.id)}
-                    onChange={() => toggleGroup(g.id)}
-                    className="w-4 h-4"
-                  />
-                  <span className="font-medium">{g.title}</span>
-                </label>
-              ))}
+            <div className="flex flex-col gap-6">
+              {/* Telegram */}
+              {tgGroups.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <span className="text-lg">✈️</span>
+                      Telegram ({tgGroups.length})
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleAll(tgGroups)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {tgGroups.every((g) => selectedGroups.includes(g.id))
+                        ? 'Снять все'
+                        : 'Выбрать все'}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {tgGroups.map((g) => (
+                      <label
+                        key={g.id}
+                        className="flex items-center gap-3 cursor-pointer p-3 rounded hover:bg-slate-50 border border-slate-200"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedGroups.includes(g.id)}
+                          onChange={() => toggleGroup(g.id)}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-medium">{g.title}</span>
+                        {g.category && (
+                          <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                            {g.category}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* MAX */}
+              {maxGroups.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <span className="text-lg">🟣</span>
+                      MAX ({maxGroups.length})
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleAll(maxGroups)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {maxGroups.every((g) => selectedGroups.includes(g.id))
+                        ? 'Снять все'
+                        : 'Выбрать все'}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {maxGroups.map((g) => (
+                      <label
+                        key={g.id}
+                        className="flex items-center gap-3 cursor-pointer p-3 rounded hover:bg-slate-50 border border-slate-200"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedGroups.includes(g.id)}
+                          onChange={() => toggleGroup(g.id)}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-medium">{g.title}</span>
+                        {g.category && (
+                          <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                            {g.category}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
