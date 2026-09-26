@@ -10,8 +10,9 @@ export async function GET() {
 
   const groups = await prisma.telegramGroup.findMany({
     where: scopeWhere(scope),
-    orderBy: { title: 'asc' },
+    orderBy: [{ messenger: 'asc' }, { title: 'asc' }],
   });
+
   return NextResponse.json(groups);
 }
 
@@ -30,8 +31,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Партнёр может создать группу только для себя
-  const partnerId = scope.isSuperAdmin ? body.partnerId || null : scope.partnerId;
+  const messenger = body.messenger === 'max' ? 'max' : 'telegram';
+
+  const partnerId = scope.isSuperAdmin
+    ? body.partnerId || null
+    : scope.partnerId;
 
   try {
     const group = await prisma.telegramGroup.create({
@@ -40,6 +44,7 @@ export async function POST(req: NextRequest) {
         chatId: String(body.chatId),
         category: body.category || null,
         isActive: body.isActive ?? true,
+        messenger,
         partnerId,
       },
     });
