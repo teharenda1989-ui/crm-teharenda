@@ -92,8 +92,8 @@ export async function editMaxMessage(
 
   try {
     const data = await httpsRequest(
-      'POST',
-      `/messages/${encodeURIComponent(messageId)}`,
+      'PUT',
+      `/messages?message_id=${encodeURIComponent(messageId)}`,
       { text },
     );
 
@@ -101,8 +101,11 @@ export async function editMaxMessage(
       return { ok: false, error: `${data.code}: ${data.message}` };
     }
 
-    if (data.success === true) {
-      return { ok: true };
+    if (data.success !== true) {
+      return {
+        ok: false,
+        error: data.message || 'Не удалось отредактировать',
+      };
     }
 
     return { ok: true };
