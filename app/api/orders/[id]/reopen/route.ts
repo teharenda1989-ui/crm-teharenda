@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getScope, scopeWhere } from '@/lib/scope';
 import { editTelegramMessage, buildOrderMessage } from '@/lib/telegram';
+import { editMaxMessage, buildOrderMessageMax } from '@/lib/max';
 
 export async function POST(
   _req: NextRequest,
@@ -23,7 +24,7 @@ export async function POST(
 
   if (!order.closedInTelegram) {
     return NextResponse.json(
-      { error: 'Поиск в Telegram и так открыт' },
+      { error: 'Поиск и так открыт' },
       { status: 400 },
     );
   }
@@ -35,7 +36,7 @@ export async function POST(
     );
   }
 
-  const reopenedText = buildOrderMessage({
+  const reopenedTextTg = buildOrderMessage({
     category: order.category,
     city: order.city,
     when: order.when || '',
@@ -44,19 +45,49 @@ export async function POST(
     dispatcherPhone: order.dispatcherPhone,
   });
 
+  const reopenedTextMax = buildOrderMessageMax({
+    category: order.category,
+    city: order.city,
+    when: order.when || '',
+    description: order.description,
+    dispatcher: order.dispatcher,
+    dispatcherPhone: order.dispatcherPhone,
+  });
+
+  // Уникальные пары chatId+messageId, привязанные к последнему действию
   const seen = new Set<string>();
-  const targets: { chatId: string; messageId: string }[] = [];
-  for (const log of order.logs) {
+  const targets: {
+    chatId: string;
+    messageId: string;
+    channel: string;
+  }[] = [];
+
+  // Идём с конца — берём самые свежие логи (после закрытия)
+  for (let i = order.logs.length - 1; i >= 0; i--) {
+    const log = order.logs[i];
     if (!log.chatId || !log.messageId) continue;
-    const key = `${log.chatId}:${log.messageId}`;
+    const key = `${log.chatId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    targets.push({ chatId: log.chatId, messageId: log.messageId });
+    targets.push({
+      chatId: log.chatId,
+      messageId: log.messageId,
+      channel: log.channel,
+    });
   }
 
   for (const t of targets) {
-    const res = await editTelegramMessage(t.chatId, t.messageId, reopenedText);
-    if (res.error && res.error.includes('Too Many Requests')) break;
+    if (t.channel === 'max') {
+      const res = await editMaxMessage(t.chatId, t.messageId, reopenedTextMax);
+      if (res.error && res.error.includes('Too Many Requests')) break;
+    } else {
+      const res = await editTelegramMessage(
+        t.chatId,
+        t.messageId,
+        reopenedTextTg,
+      );
+      if (res.error && res.error.includes('Too Many Requests')) break;
+    }
     await new Promise((r) => setTimeout(r, 300));
   }
 
@@ -65,8 +96,6 @@ export async function POST(
     data: {
       closedInTelegram: false,
       closedInTelegramAt: null,
-      assigneeName: null,
-      assigneePhone: null,
     },
   });
 
