@@ -81,6 +81,33 @@ export async function sendToMax(
   }
 }
 
+export async function editMaxMessage(
+  chatId: string,
+  messageId: string,
+  text: string,
+): Promise<MaxSendResult> {
+  if (!TOKEN) {
+    return { ok: false, error: 'MAX_BOT_TOKEN не задан' };
+  }
+
+  // Пробуем PUT /messages/{messageId}. Если не сработает — будем пробовать другие.
+  try {
+    const data = await httpsRequest(
+      'PUT',
+      `/messages/${encodeURIComponent(messageId)}`,
+      { text },
+    );
+
+    if (data.code) {
+      return { ok: false, error: `${data.code}: ${data.message}` };
+    }
+
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e.message };
+  }
+}
+
 export function buildOrderMessageMax(order: {
   category: string;
   city?: string | null;
@@ -101,5 +128,24 @@ export function buildOrderMessageMax(order: {
   lines.push(`☎️ ${order.dispatcherPhone}`);
   lines.push('');
   lines.push('Кто свободен — звоните.');
+  return lines.join('\n');
+}
+
+export function buildClosedOrderMessageMax(order: {
+  category: string;
+  city?: string | null;
+  when: string;
+  description?: string | null;
+  dispatcher: string;
+  dispatcherPhone: string;
+}): string {
+  const lines: string[] = [];
+  lines.push('🔒 ЗАЯВКА ЗАКРЫТА');
+  lines.push('');
+  lines.push(`Тип: ${order.category}`);
+  if (order.city) lines.push(`Город: ${order.city}`);
+  lines.push(`Когда: ${order.when}`);
+  lines.push('');
+  lines.push(`📞 Диспетчер: ${order.dispatcher}`);
   return lines.join('\n');
 }
