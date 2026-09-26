@@ -90,16 +90,19 @@ export async function editMaxMessage(
     return { ok: false, error: 'MAX_BOT_TOKEN не задан' };
   }
 
-  // Пробуем PUT /messages/{messageId}. Если не сработает — будем пробовать другие.
   try {
     const data = await httpsRequest(
-      'PUT',
+      'POST',
       `/messages/${encodeURIComponent(messageId)}`,
       { text },
     );
 
     if (data.code) {
       return { ok: false, error: `${data.code}: ${data.message}` };
+    }
+
+    if (data.success === true) {
+      return { ok: true };
     }
 
     return { ok: true };
@@ -145,6 +148,7 @@ export function buildClosedOrderMessageMax(order: {
   lines.push(`Тип: ${order.category}`);
   if (order.city) lines.push(`Город: ${order.city}`);
   lines.push(`Когда: ${order.when}`);
+  if (order.description) lines.push(`Детали: ${order.description}`);
   lines.push('');
   lines.push(`📞 Диспетчер: ${order.dispatcher}`);
   return lines.join('\n');
