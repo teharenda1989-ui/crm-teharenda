@@ -556,7 +556,7 @@ export default function OrderPage() {
               disabled={saving}
               className="bg-yellow-100 text-yellow-800 px-6 py-3 rounded hover:bg-yellow-200 font-medium"
             >
-              🔒 Закрыть поиск в Telegram
+              🔒 Закрыть поиск в Группах
             </button>
           )}
 
